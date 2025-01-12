@@ -1,0 +1,30 @@
+# .github/workflow/mirror.yml
+# Github의 작업을 다른 레포로 옮겨줍니다
+name: Sync this repository to another repository
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  push-to-gitlab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 
+
+      - name: Set remote repository
+        env: 
+          gitlab_url: ${{ secrets.TARGET_URL }}
+          gitlab_username: ${{ secrets.TARGET_USERNAME }}
+          gitlab_token: ${{ secrets.TARGET_TOKEN }}
+        run: | # gitlab에 토큰으로 연결합니다
+          git remote add gitlab https://${gitlab_username}:${gitlab_token}@${gitlab_url#https://};
+      
+      - name: Force push branch
+        run:
+          | # develop 브랜치를 대하여 push합니다. gitlab에서 보호설정이 걸려있으면 실패할 수 있습니다.
+          git push -f gitlab HEAD:main;
