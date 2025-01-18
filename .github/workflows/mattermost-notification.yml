@@ -1,0 +1,23 @@
+name: Notify Mattermost on Issue or Discussion
+
+on:
+  issues:
+    types: [opened] # 이슈 생성 이벤트
+  discussion:
+    types: [created] # 글 작성 이벤트
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Send Notification to Mattermost
+      env:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }} # 시크릿에 저장한 웹훅 URL
+      run: |
+        curl -X POST -H 'Content-Type: application/json' \
+          -d '{
+                "text": "**Event Notification**\n\n**Repository:** ${{ github.repository }}\n**Event:** ${{ github.event_name }}\n**Title:** ${{ github.event.issue.title || github.event.discussion.title }}\n**URL:** ${{ github.event.issue.html_url || github.event.discussion.html_url }}"
+              }' \
+          $MATTERMOST_WEBHOOK_URL
+
