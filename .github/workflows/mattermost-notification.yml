@@ -19,11 +19,11 @@ jobs:
       run: |
         # Determine event type and build the message dynamically
         if [[ "${{ github.event_name }}" == "issues" ]]; then
-          MESSAGE="**New Issue Created**\n\n**Repository:** ${{ github.repository }}\n**Title:** ${{ github.event.issue.title }}\n**URL:** ${{ github.event.issue.html_url }}"
+          MESSAGE="**New Issue Created**\n\n**Repository:** ${{ github.repository }}\n**Author:** ${{ github.event.issue.user.login }}\n**Title:** ${{ github.event.issue.title }}\n**URL:** ${{ github.event.issue.html_url }}"
         elif [[ "${{ github.event_name }}" == "discussion" ]]; then
-          MESSAGE="**New Discussion Created**\n\n**Repository:** ${{ github.repository }}\n**Title:** ${{ github.event.discussion.title }}\n**URL:** ${{ github.event.discussion.html_url }}"
+          MESSAGE="**New Discussion Created**\n\n**Repository:** ${{ github.repository }}\n**Author:** ${{ github.event.discussion.user.login }}\n**Title:** ${{ github.event.discussion.title }}\n**URL:** ${{ github.event.discussion.html_url }}"
         elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
-          MESSAGE="**New Comment on Issue**\n\n**Repository:** ${{ github.repository }}\n**Issue Title:** ${{ github.event.issue.title }}\n**Comment:** ${{ github.event.comment.body }}\n**Comment URL:** ${{ github.event.comment.html_url }}"
+          MESSAGE="**New Comment on Issue**\n\n**Repository:** ${{ github.repository }}\n**Issue Title:** ${{ github.event.issue.title }}\n**Author:** ${{ github.event.comment.user.login }}\n**Comment:** ${{ github.event.comment.body }}\n**Comment URL:** ${{ github.event.comment.html_url }}"
         fi
 
         curl -X POST -H 'Content-Type: application/json' \
