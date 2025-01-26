@@ -1,0 +1,50 @@
+name: Update Weekly Contributions
+
+on:
+  issues:
+    types: [opened] # 이슈 생성 이벤트
+  discussion:
+    types: [created] # 글 작성 이벤트
+  issue_comment:
+    types: [created] # 이슈에 댓글 생성 이벤트
+
+jobs:
+  update-contributions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Update Weekly Contributions
+        run: |
+          # 레포지토리 클론
+          git clone https://$GITHUB_ACTOR:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} repo
+          cd repo
+
+          # 현재 주 및 작성자 가져오기
+          CURRENT_WEEK=$(date +%V)
+          AUTHOR="${{ github.event.issue.user.login || github.event.discussion.user.login || github.event.comment.user.login }}"
+
+          # CONTRIBUTIONS.md 생성
+          if [[ ! -f CONTRIBUTIONS.md ]]; then
+            echo "# Weekly Contributions" > CONTRIBUTIONS.md
+          fi
+
+          # 기여 내역 업데이트
+          if grep -q "${AUTHOR}" CONTRIBUTIONS.md; then
+            awk -v week="Week $CURRENT_WEEK:" -v author="$AUTHOR" '{
+              if($1 == author && $2 == week) $3++;
+              print;
+            }' CONTRIBUTIONS.md > temp.md && mv temp.md CONTRIBUTIONS.md
+          else
+            echo "${AUTHOR}: Week $CURRENT_WEEK: 1" >> CONTRIBUTIONS.md
+          fi
+
+          # 변경 사항 커밋 및 푸시
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git add CONTRIBUTIONS.md
+          git commit -m "Update contributions for ${AUTHOR} (Week $CURRENT_WEEK)"
+          git push
