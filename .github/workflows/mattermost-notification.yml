@@ -1,4 +1,4 @@
-name: Notify Mattermost on Issue, Discussion, or Comment
+name: Notify and Track Contributions
 
 on:
   issues:
@@ -20,10 +20,13 @@ jobs:
         # Determine event type and build the message dynamically
         if [[ "${{ github.event_name }}" == "issues" ]]; then
           MESSAGE="**New Issue Created**\n\n**Repository:** ${{ github.repository }}\n**Author:** ${{ github.event.issue.user.login }}\n**Title:** ${{ github.event.issue.title }}\n**URL:** ${{ github.event.issue.html_url }}"
+          AUTHOR="${{ github.event.issue.user.login }}"
         elif [[ "${{ github.event_name }}" == "discussion" ]]; then
           MESSAGE="**New Discussion Created**\n\n**Repository:** ${{ github.repository }}\n**Author:** ${{ github.event.discussion.user.login }}\n**Title:** ${{ github.event.discussion.title }}\n**URL:** ${{ github.event.discussion.html_url }}"
+          AUTHOR="${{ github.event.discussion.user.login }}"
         elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
           MESSAGE="**New Comment on Issue**\n\n**Repository:** ${{ github.repository }}\n**Issue Title:** ${{ github.event.issue.title }}\n**Author:** ${{ github.event.comment.user.login }}\n**Comment:** ${{ github.event.comment.body }}\n**Comment URL:** ${{ github.event.comment.html_url }}"
+          AUTHOR="${{ github.event.comment.user.login }}"
         fi
 
         curl -X POST -H 'Content-Type: application/json' \
@@ -31,3 +34,32 @@ jobs:
                 \"text\": \"$MESSAGE\"
               }" \
           $MATTERMOST_WEBHOOK_URL
+
+    - name: Update Weekly Contributions in README
+      run: |
+        # Clone the repository
+        git clone https://$GITHUB_ACTOR:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} repo
+        cd repo
+
+        # Extract the current week and author
+        CURRENT_WEEK=$(date +%V) # ISO week number
+        AUTHOR="${AUTHOR}"
+
+        # Initialize the contribution file if not exists
+        if [[ ! -f CONTRIBUTIONS.md ]]; then
+          echo "# Weekly Contributions" > CONTRIBUTIONS.md
+        fi
+
+        # Update the author's contribution count for the current week
+        if grep -q "${AUTHOR}" CONTRIBUTIONS.md; then
+          sed -i "/${AUTHOR}/s/\(Week $CURRENT_WEEK: \)\([0-9]*\)/echo \"\1$((${BASH_REMATCH[2]} + 1))\"/e" CONTRIBUTIONS.md
+        else
+          echo "${AUTHOR}: Week $CURRENT_WEEK: 1" >> CONTRIBUTIONS.md
+        fi
+
+        # Commit and push changes to the repository
+        git config --global user.name "${GITHUB_ACTOR}"
+        git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+        git add CONTRIBUTIONS.md
+        git commit -m "Update contributions for ${AUTHOR} (Week $CURRENT_WEEK)"
+        git push
